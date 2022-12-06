@@ -54,10 +54,20 @@ def getAllRecords(api: API) -> Generator[dict[Any, Any], None, None]:
         offset += 1000
 
 
+def appendRecords(records: dict[Any, Any], file_path: str) -> None:
+    """Appends the records to a file of existing JSON records
+
+    Args:
+        `records` (`dict[Any, Any]`): The records to save
+        `file_path` (`str`): The path to the file to save to
+    """
+    with open(file_path, "a") as file:
+        json.dump(records, file)
+
+
 api = getAPI("config.json")
-[
+for record in getAllRecords(api):
     print(
         f"{record['offset']} of {record['total']} fetched ({record['offset'] / record['total'] * 100:.2f}%)"
     )
-    for record in getAllRecords(api)
-]
+    appendRecords(record, "records.json")
