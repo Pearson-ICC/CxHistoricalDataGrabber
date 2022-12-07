@@ -14,7 +14,7 @@ class Database:
     def create_table(self):
         self.c.execute(
             """CREATE TABLE IF NOT EXISTS records
-            (interactionId TEXT NOT NULL UNIQUE, startTimestamp TEXT, interactionTime INTEGER, queue TEXT, channelType TEXT)"""
+            (interactionId TEXT NOT NULL UNIQUE, startTimestamp TEXT NOT NULL, interactionTime INTEGER NOT NULL, queue TEXT NOT NULL, channelType TEXT NOT NULL)"""
         )
 
     def insertFromGenerator(self, generator: Generator[CxRecord, None, None]):

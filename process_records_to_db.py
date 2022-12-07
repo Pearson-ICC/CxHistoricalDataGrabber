@@ -12,11 +12,5 @@ def importJsonToDb():
     db.insertFromGenerator(allResults)
 
 
-def importFromDb():
-    db = Database()
-    results = db.getAll()
-    print(len(results))
-
-
-# importJsonToDb()
-importFromDb()
+db = Database()
+results = db.getWhere(queueId="856d61e0-3c18-11e8-ab44-d9904d0e6e43")

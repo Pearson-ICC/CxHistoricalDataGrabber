@@ -3,3 +3,4 @@ config.json
 records.db
 records.jsonl
 **.DS_Store
+__pycache__
