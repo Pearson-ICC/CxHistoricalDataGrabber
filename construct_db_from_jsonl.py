@@ -8,7 +8,11 @@ def recordsFromJsons(
     jsonLines: list[dict[str, Any]]
 ) -> Generator[CxRecord, None, None]:
     for line in jsonLines:
-        record = CxRecord.fromDict(line, failSilent=True)
+        record: CxRecord
+        try:
+            record = CxRecord.fromDict(line)
+        except ValueError:
+            continue
         if record is None:
             continue
         yield record

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 class CxRecord:
@@ -30,16 +30,10 @@ class CxRecord:
         self.channelType = channelType
 
     @staticmethod
-    def fromDict(
-        _dict: dict[str, Any], failSilent: bool = False
-    ) -> Optional["CxRecord"]:
+    def fromDict(_dict: dict[str, Any]) -> "CxRecord":
         if "queues" not in _dict:
-            if failSilent:
-                return None
             raise ValueError("No queue found in record")
         if "interactionTime" not in _dict:
-            if failSilent:
-                return None
             raise ValueError("No interaction time found in record")
 
         record = CxRecord(
