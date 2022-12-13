@@ -4,6 +4,48 @@ from typing import Generator
 from db.cxRecord import CxRecord
 
 
+def mapRecordByRoundingTimestampDownToChunk(
+    record: CxRecord, chunk_size: timedelta
+) -> Generator[tuple[str, datetime, str, int, int], None, None]:
+    """Map a record to a time chunk by rounding the timestamp down to the nearest chunk."""
+    # round down record.startTimestamp to nearest chunk_size
+    def roundToChunkSize(timestamp: datetime, chunk_size: timedelta) -> datetime:
+        """Round a timestamp down to the nearest chunk_size."""
+        # 1. convert all stuff to timestamps (seconds since epoch)
+        # 2. get the remainder of the timestamp divided by the chunk size (in seconds)
+        # 3. subtract that remainder from the timestamp
+        # 4. convert back to datetime
+        return datetime.fromtimestamp(
+            timestamp.timestamp()
+            - (timestamp.timestamp() % chunk_size.total_seconds()),
+        )
+
+    yield (
+        record.queue,
+        roundToChunkSize(record.startTimestamp, chunk_size),
+        record.customer,
+        record.interactionTime,
+        1,
+    )
+
+
+def createIndividualChunkData(
+    chunk_size: timedelta,
+    records: Generator[CxRecord, None, None],
+) -> Generator[tuple[str, datetime, str, int, int], None, None]:
+    """
+    Create a list of tuples containing the following data:
+    - queueID
+    - startTimestamp
+    - customer
+    - avgHandleTime
+    - contactCount
+    """
+
+    for record in records:
+        yield from mapRecordByRoundingTimestampDownToChunk(record, chunk_size)
+
+
 def generateChunkedDateTimes(
     start: datetime, end: datetime, chunk_size: timedelta
 ) -> Generator[datetime, None, None]:
@@ -14,92 +56,25 @@ def generateChunkedDateTimes(
         current += chunk_size
 
 
-def createIndividualChunkData(
-    chunk_size: timedelta,
-    start_date: datetime,
-    end_date: datetime,
-    records: Generator[CxRecord, None, None],
-) -> list[tuple[str, datetime, str, int, int]]:
-    """
-    Create a list of tuples containing the following data:
-    - queueID
-    - startTimestamp
-    - customer
-    - avgHandleTime
-    - contactCount
-    """
+def aggregate(
+    chunk_size: timedelta, c: list[tuple[str, datetime, str, int, int]]
+) -> dict[datetime, list[tuple[str, datetime, str, int, int]]]:
+    START_DATE = c[-1][1]
+    END_DATE = c[0][1]
+    # swap start and end date if they're the wrong way around
+    if START_DATE > END_DATE:
+        START_DATE, END_DATE = END_DATE, START_DATE  # type: ignore
+    END_DATE += chunk_size  # type: ignore
 
-    print("Starting processing")
-    processedData = list[
-        tuple[str, datetime, str, int, int]
-    ]()  # queueID, startTimestamp, customer, avgHandleTime, contactCount
+    chunkedDateTimes = list(generateChunkedDateTimes(START_DATE, END_DATE, chunk_size))
+    chunkData: dict[datetime, list[tuple[str, datetime, str, int, int]]] = {
+        chunk: [] for chunk in chunkedDateTimes
+    }
 
-    dateTimeChunks = generateChunkedDateTimes(start_date, end_date, chunk_size)
+    for chunk in c:
+        chunkData[chunk[1]].append(chunk)
 
-    def mapRecord(
-        record: CxRecord,
-        chunk_size: timedelta,
-    ) -> Generator[tuple[str, datetime, str, int, int], None, None]:
-        for timeChunk in dateTimeChunks:
-            if timeChunk <= record.startTimestamp < timeChunk + chunk_size:
-                # record is in this time chunk
-                yield (
-                    record.queue,
-                    timeChunk,
-                    record.customer,
-                    record.interactionTime,
-                    1,
-                )
-                # records.remove(record)
-                continue
-
-    def mapRecordByRoundingTimestampDownToChunk(
-        record: CxRecord, chunk_size: timedelta
-    ) -> Generator[tuple[str, datetime, str, int, int], None, None]:
-        """Map a record to a time chunk by rounding the timestamp down to the nearest chunk."""
-        # round down record.startTimestamp to nearest chunk_size
-        def roundToChunkSize(timestamp: datetime, chunk_size: timedelta) -> datetime:
-            """Round a timestamp down to the nearest chunk_size."""
-            # 1. convert all stuff to timestamps (seconds since epoch)
-            # 2. get the remainder of the timestamp divided by the chunk size (in seconds)
-            # 3. subtract that remainder from the timestamp
-            # 4. convert back to datetime
-            return datetime.fromtimestamp(
-                timestamp.timestamp()
-                - (timestamp.timestamp() % chunk_size.total_seconds()),
-            )
-
-        yield (
-            record.queue,
-            roundToChunkSize(record.startTimestamp, chunk_size),
-            record.customer,
-            record.interactionTime,
-            1,
-        )
-
-    # start a timer (time how long this takes)
-    start = datetime.now()
-
-    i = 0
-    max_i = 10000
-    for record in records:
-        i += 1
-        if i > max_i:
-            break
-        for chunk in mapRecordByRoundingTimestampDownToChunk(record, chunk_size):
-            processedData.append(chunk)
-
-    # end timer
-    end = datetime.now()
-
-    for timeChunk in processedData:
-        print(f"{timeChunk} - {len(processedData)}")
-
-    print(
-        f"Time taken for {max_i} records: {end - start} seconds ({(end - start) / max_i}s per record)"
-    )
-
-    return processedData
+    return chunkData
 
 
 # split into half hour chunks
@@ -112,15 +87,13 @@ db = Database()
 records = db.getAll()
 
 CHUNK_SIZE = timedelta(minutes=15)
-START_DATE = datetime(2018, 1, 1)
-END_DATE = datetime(2022, 12, 10)
 
-chunks = createIndividualChunkData(CHUNK_SIZE, START_DATE, END_DATE, records)
-print(chunks)
+chunks = createIndividualChunkData(CHUNK_SIZE, records)
+c = [chunk for chunk in chunks]
 
-# [
-#     print(a)
-#     for a in generateChunkedDateTimes(
-#         datetime(2021, 1, 1), datetime(2022, 1, 1), CHUNK_SIZE
-#     )
-# ]
+print("Beginning aggregation...")
+aggregatedChunkData = aggregate(CHUNK_SIZE, c)
+for chunk in aggregatedChunkData:
+    print(f"{chunk}: {len(aggregatedChunkData[chunk])}")
+
+print(aggregatedChunkData[datetime(2022, 12, 1, 12, 0)])
