@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional, Generator
 from db.cxRecord import CxRecord
+from datetime import datetime
 
 
 class Database:
@@ -17,14 +18,14 @@ class Database:
             (interactionId TEXT NOT NULL UNIQUE, startTimestamp TEXT NOT NULL, interactionTime INTEGER NOT NULL, queue TEXT NOT NULL, channelType TEXT NOT NULL)"""
         )
 
-    def insertFromGenerator(self, generator: Generator[CxRecord, None, None]):
+    def insertFromGenerator(self, records: Generator[CxRecord, None, None]):
         i = 1
-        for record in generator:
+        for record in records:
             self.c.execute(
                 "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?)",
                 (
                     record.interactionId,
-                    record.startTimestamp,
+                    record.startTimestamp.isoformat(),
                     record.interactionTime,
                     record.queue,
                     record.channelType,
@@ -41,14 +42,20 @@ class Database:
     def insert(
         self,
         interactionId: str,
-        startTimestamp: str,
+        startTimestamp: datetime,
         interactionTime: int,
         queue: str,
         channelType: str,
     ):
         self.c.execute(
             "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?)",
-            (interactionId, startTimestamp, interactionTime, queue, channelType),
+            (
+                interactionId,
+                startTimestamp.isoformat(),
+                interactionTime,
+                queue,
+                channelType,
+            ),
         )
         self.conn.commit()
 
@@ -62,7 +69,7 @@ class Database:
         channelType: Optional[str] = None,
         betweenStart: Optional[str] = None,
         betweenEnd: Optional[str] = None,
-    ) -> list[CxRecord]:
+    ) -> Generator[CxRecord, None, None]:
         query = "SELECT * FROM records "
         if queueId or channelType or betweenStart or betweenEnd:
             query += "WHERE "
@@ -74,7 +81,14 @@ class Database:
             query += f"startTimestamp BETWEEN '{betweenStart}' AND '{betweenEnd}'"
 
         self.c.execute(query)
-        return self.c.fetchall()
+        for record in self.c.fetchall():
+            yield CxRecord(
+                interactionId=record[0],
+                startTimestamp=record[1],
+                interactionTime=record[2],
+                queue=record[3],
+                channelType=record[4],
+            )
 
     def close(self):
         self.conn.close()

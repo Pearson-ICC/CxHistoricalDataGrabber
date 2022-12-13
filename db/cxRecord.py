@@ -9,6 +9,20 @@ class CxRecord:
     queue: str  # queue ID
     channelType: str  # voice | chat
 
+    def __init__(
+        self,
+        interactionId: str,
+        startTimestamp: datetime,
+        interactionTime: int,
+        queue: str,
+        channelType: str,
+    ):
+        self.interactionId = interactionId
+        self.startTimestamp = startTimestamp
+        self.interactionTime = interactionTime
+        self.queue = queue
+        self.channelType = channelType
+
     @staticmethod
     def fromDict(_dict: dict[str, Any]):
         if "queues" not in _dict:
@@ -16,12 +30,14 @@ class CxRecord:
         if "interactionTime" not in _dict:
             raise ValueError("No interaction time found in record")
 
-        record = CxRecord()
-        record.interactionId = _dict["interactionId"]
-        record.startTimestamp = datetime.fromisoformat(_dict["startTimestamp"][:-5])
-        record.interactionTime = _dict["interactionTime"]
-        record.queue = _dict["queues"][0]["queueId"]
-        record.channelType = _dict["channelType"]
+        record = CxRecord(
+            interactionId=_dict["interactionId"],
+            startTimestamp=datetime.fromisoformat(_dict["startTimestamp"][:-5]),
+            interactionTime=_dict["interactionTime"],
+            queue=_dict["queues"][0]["queueId"],
+            channelType=_dict["channelType"],
+        )
+
         return record
 
 
