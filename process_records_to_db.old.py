@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from typing import Generator
 
 db = Database()
-results = list(db.getAll())
+records = list(db.getAll())
+
 
 # split into half hour chunks
 # get:
@@ -22,46 +23,69 @@ def generateChunkedDateTimes(
         current += chunk_size
 
 
+def createIndividualChunkData(
+    chunk_size: timedelta, start_date: datetime, end_date: datetime
+) -> list[tuple[str, datetime, str, int, int]]:
+    """
+    Create a list of tuples containing the following data:
+    - queueID
+    - startTimestamp
+    - customer
+    - avgHandleTime
+    - contactCount
+    """
+
+    print("Starting processing")
+    processedData = list[
+        tuple[str, datetime, str, int, int]
+    ]()  # queueID, startTimestamp, customer, avgHandleTime, contactCount
+
+    dateTimeChunks = generateChunkedDateTimes(start_date, end_date, chunk_size)
+
+    # start a timer (time how long this takes)
+    start = datetime.now()
+
+    i = 0
+    max_i = 5000
+    for record in records:
+        i += 1
+        if i > max_i:
+            break
+        for timeChunk in dateTimeChunks:
+            if timeChunk <= record.startTimestamp < timeChunk + chunk_size:
+                # record is in this time chunk
+                processedData.append(
+                    (
+                        record.queue,
+                        timeChunk,
+                        record.customer,
+                        record.interactionTime,
+                        1,
+                    )
+                )
+                records.remove(record)
+                continue
+
+    # end timer
+    end = datetime.now()
+
+    for timeChunk in processedData:
+        print(f"{timeChunk} - {len(processedData)}")
+
+    print(
+        f"Time taken for {max_i} records: {end - start} seconds ({(end - start) / max_i}s per record)"
+    )
+
+    return processedData
+
+
 CHUNK_SIZE = timedelta(minutes=15)
 START_DATE = datetime(2021, 1, 1)
 END_DATE = datetime(2022, 12, 10)
 
-chunksDataFrame = list[tuple[datetime, 
-dateTimeChunks = generateChunkedDateTimes(START_DATE, END_DATE, CHUNK_SIZE)
 
-print("Starting processing")
-
-# start a timer
-start = datetime.now()
-
-i = 0
-max_i = 50
-for result in results:
-    i += 1
-    if i > max_i:
-        break
-    for thisDateTimeChunk in dateTimeChunks:
-        # print(result.startTimestamp)
-        if thisDateTimeChunk <= result.startTimestamp < thisDateTimeChunk + CHUNK_SIZE:
-            newRow = DataFrame({thisDateTimeChunk: result}, index=[0])
-            chunksDataFrame = concat(
-                [
-                    chunksDataFrame,
-                    newRow,
-                ]
-            )
-            results.remove(result)
-            continue
-
-# end timer
-end = datetime.now()
-
-for thisDateTimeChunk in chunksDataFrame:
-    print(f"{thisDateTimeChunk} - {len(chunksDataFrame)}")
-
-print(
-    f"Time taken for {max_i} records: {end - start} seconds ({(end - start) / max_i}s per record)"
-)
+chunks = createIndividualChunkData(CHUNK_SIZE, START_DATE, END_DATE)
+print(chunks)
 
 # [
 #     print(a)
