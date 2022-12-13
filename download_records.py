@@ -25,4 +25,4 @@ for record in records.getAllRecords():
     print(
         f"{record['offset']} of {record['total']} fetched ({record['offset'] / record['total'] * 100:.2f}%)"
     )
-    records.appendRecords(record, "records.json")
+    records.appendRecordsToFile(record, "records.json")

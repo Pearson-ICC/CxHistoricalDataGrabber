@@ -1,7 +1,6 @@
 from db.db import Database
 from datetime import datetime, timedelta
 from typing import Generator
-from db.cxRecord import CxRecord
 
 db = Database()
 results = list(db.getAll())
@@ -27,9 +26,8 @@ CHUNK_SIZE = timedelta(minutes=15)
 START_DATE = datetime(2021, 1, 1)
 END_DATE = datetime(2022, 12, 10)
 
-chunks: dict[datetime, set[CxRecord]] = {}
-for chunk in generateChunkedDateTimes(START_DATE, END_DATE, CHUNK_SIZE):
-    chunks[chunk] = set()
+chunksDataFrame = list[tuple[datetime, 
+dateTimeChunks = generateChunkedDateTimes(START_DATE, END_DATE, CHUNK_SIZE)
 
 print("Starting processing")
 
@@ -37,23 +35,29 @@ print("Starting processing")
 start = datetime.now()
 
 i = 0
-max_i = 5000
+max_i = 50
 for result in results:
     i += 1
     if i > max_i:
         break
-    for chunk in chunks:
+    for thisDateTimeChunk in dateTimeChunks:
         # print(result.startTimestamp)
-        if chunk <= result.startTimestamp < chunk + CHUNK_SIZE:
-            chunks[chunk].add(result)
+        if thisDateTimeChunk <= result.startTimestamp < thisDateTimeChunk + CHUNK_SIZE:
+            newRow = DataFrame({thisDateTimeChunk: result}, index=[0])
+            chunksDataFrame = concat(
+                [
+                    chunksDataFrame,
+                    newRow,
+                ]
+            )
             results.remove(result)
             continue
 
 # end timer
 end = datetime.now()
 
-for chunk in chunks:
-    print(f"{chunk} - {len(chunks[chunk])}")
+for thisDateTimeChunk in chunksDataFrame:
+    print(f"{thisDateTimeChunk} - {len(chunksDataFrame)}")
 
 print(
     f"Time taken for {max_i} records: {end - start} seconds ({(end - start) / max_i}s per record)"

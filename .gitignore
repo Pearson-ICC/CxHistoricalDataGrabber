@@ -1,6 +1,7 @@
 config.json
 **.pyc
-records.db
-records.jsonl
+records**.db
+records**.jsonl
 **.DS_Store
 __pycache__
+records.db-journal

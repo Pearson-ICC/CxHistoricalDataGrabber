@@ -41,7 +41,7 @@ class Records:
                 break
             offset += 1000
 
-    def appendRecords(self, records: dict[Any, Any], file_path: str) -> None:
+    def appendRecordsToFile(self, records: dict[Any, Any], file_path: str) -> None:
         """Appends the records to a file of existing JSON records
 
         Args:

@@ -15,18 +15,20 @@ class Database:
     def create_table(self):
         self.c.execute(
             """CREATE TABLE IF NOT EXISTS records
-            (interactionId TEXT NOT NULL UNIQUE, startTimestamp TEXT NOT NULL, interactionTime INTEGER NOT NULL, queue TEXT NOT NULL, channelType TEXT NOT NULL)"""
+            (interactionId TEXT NOT NULL UNIQUE, startTimestamp TEXT NOT NULL, interactionTime INTEGER NOT NULL, customer TEXT NOT NULL, queue TEXT NOT NULL, channelType TEXT NOT NULL)"""
         )
 
-    def insertFromGenerator(self, records: Generator[CxRecord, None, None]):
+    def insertAll(self, records: Generator[CxRecord, None, None]):
+        print("Beginning to insert records...")
         i = 1
         for record in records:
             self.c.execute(
-                "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     record.interactionId,
                     record.startTimestamp.isoformat(),
                     record.interactionTime,
+                    record.customer,
                     record.queue,
                     record.channelType,
                 ),
@@ -44,15 +46,17 @@ class Database:
         interactionId: str,
         startTimestamp: datetime,
         interactionTime: int,
+        customer: str,
         queue: str,
         channelType: str,
     ):
         self.c.execute(
-            "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO records VALUES (?, ?, ?, ?, ?, ?)",
             (
                 interactionId,
                 startTimestamp.isoformat(),
                 interactionTime,
+                customer,
                 queue,
                 channelType,
             ),
@@ -66,8 +70,9 @@ class Database:
                 interactionId=record[0],
                 startTimestamp=record[1],
                 interactionTime=record[2],
-                queue=record[3],
-                channelType=record[4],
+                customer=record[3],
+                queue=record[4],
+                channelType=record[5],
             )
 
     def getWhere(
@@ -93,8 +98,9 @@ class Database:
                 interactionId=record[0],
                 startTimestamp=record[1],
                 interactionTime=record[2],
-                queue=record[3],
-                channelType=record[4],
+                customer=record[3],
+                queue=record[4],
+                channelType=record[5],
             )
 
     def close(self):
