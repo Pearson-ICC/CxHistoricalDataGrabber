@@ -59,9 +59,16 @@ class Database:
         )
         self.conn.commit()
 
-    def getAll(self):
+    def getAll(self) -> Generator[CxRecord, None, None]:
         self.c.execute("SELECT * FROM records")
-        return self.c.fetchall()
+        for record in self.c.fetchall():
+            yield CxRecord(
+                interactionId=record[0],
+                startTimestamp=record[1],
+                interactionTime=record[2],
+                queue=record[3],
+                channelType=record[4],
+            )
 
     def getWhere(
         self,

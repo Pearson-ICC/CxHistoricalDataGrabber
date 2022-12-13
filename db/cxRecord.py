@@ -18,8 +18,11 @@ class CxRecord:
         channelType: str,
     ):
         self.interactionId = interactionId
-        self.startTimestamp = startTimestamp
         self.interactionTime = interactionTime
+        if type(startTimestamp) == datetime:
+            self.startTimestamp = startTimestamp
+        else:
+            self.startTimestamp = datetime.fromisoformat(startTimestamp)  # type: ignore
         self.queue = queue
         self.channelType = channelType
 
