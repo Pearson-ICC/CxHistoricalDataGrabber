@@ -5,3 +5,4 @@ records**.jsonl
 **.DS_Store
 __pycache__
 records.db-journal
+stats.csv

@@ -116,7 +116,7 @@ for chunk in aggregatedChunkData.keys():
     # calculate average interaction time for aggregatedChunkData[chunk]
     avgInteractionTime = sum(
         [record[3] for record in aggregatedChunkData[chunk]]
-    ) / len(aggregatedChunkData[chunk])
+    ) // len(aggregatedChunkData[chunk])
     # calculate number of interactions for aggregatedChunkData[chunk]
     numInteractions = len(aggregatedChunkData[chunk])
     # calculate number of unique contacts handled for aggregatedChunkData[chunk]
@@ -128,4 +128,11 @@ for chunk in aggregatedChunkData.keys():
         "numContacts": numContacts,
     }
 
-print(statistics)
+from stats_to_csv import statsToCsv
+
+statsToCsv(
+    statistics,
+    "EO_Gen",
+    "856d61e0-3c18-11e8-ab44-d9904d0e6e43",
+    "15min",
+)
