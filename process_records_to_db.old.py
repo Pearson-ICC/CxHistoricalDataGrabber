@@ -2,6 +2,7 @@ from db.db import Database
 from datetime import datetime, timedelta
 from typing import Generator
 from db.cxRecord import CxRecord
+from queueIDMapping import getQueueIDToNameMapping, getAllQueueIDs
 
 
 def roundToChunkSize(timestamp: datetime, chunk_size: timedelta) -> datetime:
@@ -124,7 +125,7 @@ chunks: list[
 ] = list(createIndividualChunkData(CHUNK_SIZE, records))
 
 # aggregated data is the above data, but aggregated by time chunk
-for queue_id in set([record[0] for record in chunks]):
+for queue_id in getAllQueueIDs():
     print(f"Aggregating data for queue {queue_id}")
 
     aggregatedChunkData = aggregate(queue_id, CHUNK_SIZE, chunks)
@@ -156,10 +157,10 @@ for queue_id in set([record[0] for record in chunks]):
             "avgInteractionTime": avgInteractionTime,
             "numInteractions": numInteractions,
             "numContacts": numContacts,
+            "queueId": queue_id,
         }
 
     from stats_to_csv import statsToCsv
-    from queueIDMapping import getQueueIDToNameMapping
 
     intervalDuration: str
     if CHUNK_SIZE == timedelta(minutes=15):
