@@ -58,8 +58,8 @@ def statsToCsv(
 
     if continueWriting:
         with open("stats.csv", "a") as f:
-            f.write("\n".join(genLines()))
+            f.write("\n".join(genLines()) + "\n")
     else:
         with open("stats.csv", "w") as f:
             f.write(headers + "\n")
-            f.write("\n".join(genLines()))
+            f.write("\n".join(genLines()) + "\n")

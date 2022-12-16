@@ -124,11 +124,13 @@ chunks: list[
     ]
 ] = list(createIndividualChunkData(CHUNK_SIZE, records))
 
-statsToCsvFirstWrite = False
+statsToCsvFirstWrite = True
 
 # aggregated data is the above data, but aggregated by time chunk
 for queue_id in getAllQueueIDs():
-    print(f"Aggregating data for queue {queue_id}")
+    print(
+        f"Aggregating data for queue {queue_id} ({getAllQueueIDs().index(queue_id)} of {len(getAllQueueIDs())})"
+    )
 
     aggregatedChunkData = aggregate(queue_id, CHUNK_SIZE, chunks)
 
@@ -167,9 +169,9 @@ for queue_id in getAllQueueIDs():
 
     intervalDuration: str
     if CHUNK_SIZE == timedelta(minutes=15):
-        intervalDuration = "15min"
+        intervalDuration = "15mins"
     elif CHUNK_SIZE == timedelta(minutes=30):
-        intervalDuration = "30min"
+        intervalDuration = "30mins"
     elif CHUNK_SIZE == timedelta(days=1):
         intervalDuration = "daily"
     else:
