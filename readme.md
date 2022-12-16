@@ -24,3 +24,7 @@ Sample `config.json`:
     "end_date": ""
 }
 ```
+
+## Usage
+
+Please note, this program requires a lot of manual python script running. It does everything but all the scripts are not quite connected up in the way they should be to make this a single run-and-forget process.
