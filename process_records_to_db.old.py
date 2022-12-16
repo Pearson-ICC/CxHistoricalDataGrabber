@@ -124,6 +124,8 @@ chunks: list[
     ]
 ] = list(createIndividualChunkData(CHUNK_SIZE, records))
 
+statsToCsvFirstWrite = False
+
 # aggregated data is the above data, but aggregated by time chunk
 for queue_id in getAllQueueIDs():
     print(f"Aggregating data for queue {queue_id}")
@@ -141,6 +143,7 @@ for queue_id in getAllQueueIDs():
                 "avgInteractionTime": 0,
                 "numInteractions": 0,
                 "numContacts": 0,
+                "queueId": queue_id,
             }
             continue
 
@@ -176,4 +179,7 @@ for queue_id in getAllQueueIDs():
         stats=statistics,
         intervalDuration=intervalDuration,
         queueIDMap=getQueueIDToNameMapping(),
+        continueWriting=not (statsToCsvFirstWrite),
     )
+
+    statsToCsvFirstWrite = False

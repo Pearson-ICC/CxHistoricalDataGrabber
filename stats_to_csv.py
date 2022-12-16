@@ -7,6 +7,7 @@ def statsToCsv(
     stats: dict[datetime, Any],
     intervalDuration: str,
     queueIDMap: dict[str, str],
+    continueWriting: bool,
 ) -> None:
     # stats format is:
     # {
@@ -55,6 +56,10 @@ def statsToCsv(
                 ]
             )
 
-    with open("stats.csv", "w") as f:
-        f.write(headers + "\n")
-        f.write("\n".join(genLines()))
+    if continueWriting:
+        with open("stats.csv", "a") as f:
+            f.write("\n".join(genLines()))
+    else:
+        with open("stats.csv", "w") as f:
+            f.write(headers + "\n")
+            f.write("\n".join(genLines()))
