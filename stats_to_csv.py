@@ -5,9 +5,8 @@ from typing import Generator
 
 def statsToCsv(
     stats: dict[datetime, Any],
-    queueName: str,
-    queueId: str,
     intervalDuration: str,
+    queueIDMap: dict[str, str],
 ) -> None:
     # stats format is:
     # {
@@ -45,8 +44,8 @@ def statsToCsv(
         for chunk, value in stats.items():
             yield ",".join(
                 [
-                    queueName,
-                    queueId,
+                    queueIDMap[value["queueId"]],
+                    value["queueId"],
                     "VOICE",
                     chunk.isoformat(),
                     intervalDuration,

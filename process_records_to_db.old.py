@@ -66,8 +66,21 @@ def generateChunkedDateTimes(
 
 
 def aggregate(
-    chunk_size: timedelta, c: list[tuple[str, datetime, str, int, int]]
+    queueId: str,
+    chunk_size: timedelta,
+    c: list[tuple[str, datetime, str, int, int]],
 ) -> dict[datetime, list[tuple[str, datetime, str, int, int]]]:
+    """
+    Aggregate a list of tuples containing the following data:
+    - queueID
+    - startTimestamp
+    - customer
+    - avgHandleTime
+    - contactCount
+
+    for a given queueId, into a dictionary of time chunks.
+    """
+
     START_DATE = c[-1][1]
     END_DATE = c[0][1]
     # swap start and end date if they're the wrong way around
@@ -83,7 +96,8 @@ def aggregate(
     }
 
     for chunk in c:
-        chunkData[chunk[1]].append(chunk)
+        if chunk[0] == queueId:
+            chunkData[chunk[1]].append(chunk)
 
     return chunkData
 
@@ -98,41 +112,67 @@ db = Database()
 records = db.getAll()
 CHUNK_SIZE = timedelta(minutes=15)
 
-chunks = list(createIndividualChunkData(CHUNK_SIZE, records))
-aggregatedChunkData = aggregate(CHUNK_SIZE, chunks)
+# EVERY record, not aggregated:
+chunks: list[
+    tuple[
+        str,  # queueID
+        datetime,  # startTimestamp
+        str,  # customer
+        int,  # avgHandleTime
+        int,  # contactCount
+    ]
+] = list(createIndividualChunkData(CHUNK_SIZE, records))
 
-print("Calculating statistics")
+# aggregated data is the above data, but aggregated by time chunk
+for queue_id in set([record[0] for record in chunks]):
+    print(f"Aggregating data for queue {queue_id}")
 
-statistics = {}
-for chunk in aggregatedChunkData.keys():
-    if len(aggregatedChunkData[chunk]) == 0:
+    aggregatedChunkData = aggregate(queue_id, CHUNK_SIZE, chunks)
+
+    print("Calculating statistics")
+
+    statistics = {}
+    for chunk in aggregatedChunkData.keys():
+        # AWS does not say that data HAS to be in chronological order
+        # this means we can do all the data for one queue, then another, etc., if necessary
+        if len(aggregatedChunkData[chunk]) == 0:
+            statistics[chunk] = {
+                "avgInteractionTime": 0,
+                "numInteractions": 0,
+                "numContacts": 0,
+            }
+            continue
+
+        # calculate average interaction time for aggregatedChunkData[chunk]
+        avgInteractionTime = sum(
+            [record[3] for record in aggregatedChunkData[chunk]]
+        ) // len(aggregatedChunkData[chunk])
+        # calculate number of interactions for aggregatedChunkData[chunk]
+        numInteractions = len(aggregatedChunkData[chunk])
+        # calculate number of unique contacts handled for aggregatedChunkData[chunk]
+        numContacts = len(set([record[2] for record in aggregatedChunkData[chunk]]))
+
         statistics[chunk] = {
-            "avgInteractionTime": 0,
-            "numInteractions": 0,
-            "numContacts": 0,
+            "avgInteractionTime": avgInteractionTime,
+            "numInteractions": numInteractions,
+            "numContacts": numContacts,
         }
-        continue
 
-    # calculate average interaction time for aggregatedChunkData[chunk]
-    avgInteractionTime = sum(
-        [record[3] for record in aggregatedChunkData[chunk]]
-    ) // len(aggregatedChunkData[chunk])
-    # calculate number of interactions for aggregatedChunkData[chunk]
-    numInteractions = len(aggregatedChunkData[chunk])
-    # calculate number of unique contacts handled for aggregatedChunkData[chunk]
-    numContacts = len(set([record[2] for record in aggregatedChunkData[chunk]]))
+    from stats_to_csv import statsToCsv
+    from queueIDMapping import getQueueIDToNameMapping
 
-    statistics[chunk] = {
-        "avgInteractionTime": avgInteractionTime,
-        "numInteractions": numInteractions,
-        "numContacts": numContacts,
-    }
+    intervalDuration: str
+    if CHUNK_SIZE == timedelta(minutes=15):
+        intervalDuration = "15min"
+    elif CHUNK_SIZE == timedelta(minutes=30):
+        intervalDuration = "30min"
+    elif CHUNK_SIZE == timedelta(days=1):
+        intervalDuration = "daily"
+    else:
+        raise ValueError(f"Invalid chunk size {CHUNK_SIZE}")
 
-from stats_to_csv import statsToCsv
-
-statsToCsv(
-    statistics,
-    "EO_Gen",
-    "856d61e0-3c18-11e8-ab44-d9904d0e6e43",
-    "15min",
-)
+    statsToCsv(
+        stats=statistics,
+        intervalDuration=intervalDuration,
+        queueIDMap=getQueueIDToNameMapping(),
+    )
